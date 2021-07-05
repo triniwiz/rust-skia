@@ -42,6 +42,8 @@ svg = ["skia-bindings/svg"]
 shaper = ["textlayout", "skia-bindings/shaper"]
 
 [dependencies]
+ureq = "2.1.1"
+base64 = "0.13.0"
 bitflags = "1.2"
 lazy_static = "1.4"
 skia-bindings = { version = "=0.40.2", path = "../skia-bindings", default-features = false }

@@ -94,14 +94,47 @@
 #include "include/utils/SkShadowUtils.h"
 #include "include/utils/SkTextUtils.h"
 
-
-
 // svg
 
 #include "modules/svg/include/SkSVGDOM.h"
+#include "modules/skresources/include/SkResources.h"
 
-extern "C" SkSVGDOM* C_SkSVGDOM_MakeFromStream(SkStream& stream) {
-    return SkSVGDOM::MakeFromStream(stream).release();
+
+class ImageResourceProvider final : public skresources::ResourceProvider {
+
+private:
+    loadSkData _loadCb;
+
+public:
+    ImageResourceProvider(loadSkData  loadCb) {
+         _loadCb = loadCb;
+    }
+
+
+    sk_sp<SkData> load(const char resource_path [],
+                                              const char resource_name []) const {
+        return sp(((loadSkData)_loadCb)(resource_path,resource_name));
+    }
+
+
+
+    sk_sp<skresources::ImageAsset> loadImageAsset(const char resource_path [],
+                                                                         const char resource_name [],
+                                                                         const char /*resource_id*/ []) const {
+        auto data = this->load(resource_path, resource_name);
+        return skresources::MultiFrameImageAsset::Make(data);
+    }
+
+    ~ImageResourceProvider() {}
+
+};
+
+
+extern "C" SkSVGDOM* C_SkSVGDOM_MakeFromStream(SkStream& stream, loadSkData loadCb) {  
+    auto provider = sk_make_sp<ImageResourceProvider>(loadCb); 
+    auto builder = SkSVGDOM::Builder();
+    builder.setResourceProvider(provider); 
+    return builder.make(stream).release();
 }
 
 extern "C" void C_SkSVGDOM_ref(const SkSVGDOM* self) {

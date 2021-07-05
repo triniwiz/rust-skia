@@ -1,15 +1,22 @@
-pub mod canvas;
-
-use crate::{
-    prelude::{NativeAccess, NativeDrop, NativeRefCounted},
-    RCHandle,
-    interop::RustStream
-};
 use std::{error::Error, fmt, io};
 
-pub use self::canvas::Canvas;
+use ureq::Response;
 
 use skia_bindings as sb;
+use skia_bindings::{sk_sp, SkData};
+
+use crate::{
+    interop::RustStream,
+    prelude::{NativeAccess, NativeDrop, NativeRefCounted},
+    RCHandle,
+};
+use crate::interop::{MemoryStream, NativeStreamBase};
+use crate::prelude::IntoPtr;
+
+pub use self::canvas::Canvas;
+use std::io::Read;
+
+pub mod canvas;
 
 pub type SvgDom = RCHandle<sb::SkSVGDOM>;
 
@@ -55,14 +62,73 @@ impl From<SvgLoadError> for io::Error {
     }
 }
 
+extern "C" fn handle_load(resource_path: *const i8, resource_name: *const i8) -> *mut SkData {
+    unsafe {
+        let mut is_base64 = false;
+        if resource_path.is_null() {
+            is_base64 = true;
+        }
+
+
+        let resource_path = std::ffi::CStr::from_ptr(resource_path);
+        let resource_name = std::ffi::CStr::from_ptr(resource_name);
+
+
+        if resource_path.to_string_lossy().is_empty() {
+            is_base64 = true;
+        }
+
+
+        if is_base64 {
+            let mut data = SvgDom::handle_load_base64(resource_name.to_string_lossy().as_ref());
+            data.into_ptr()
+        } else {
+            let path = format!("{}/{}", resource_path.to_string_lossy(), resource_name.to_string_lossy());
+            match ureq::agent().get(&path).call() {
+                Ok(res) => {
+                    let len = res.header("Content-Length")
+                        .and_then(|s| s.parse::<usize>().ok()).unwrap_or_default();
+
+                    let mut bytes: Vec<u8> = Vec::with_capacity(len);
+                   res.into_reader().take(len as u64)
+                        .read_to_end(&mut bytes);
+                    let data = crate::Data::new_copy(bytes.as_slice());
+                    data.into_ptr()
+                }
+                Err(_) => {
+                    let mut data = crate::Data::new_empty();
+                    data.into_ptr()
+                }
+            }
+        }
+    }
+}
+
+
 impl SvgDom {
+    fn handle_load_base64(data: &str) -> crate::Data {
+        let data: Vec<_> = data.split(",").collect();
+        if data.len() > 1 {
+            let result = decode_base64(data[1]);
+            return crate::Data::new_copy(result.as_slice());
+        }
+        crate::Data::new_empty()
+    }
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, SvgLoadError> {
         let mut reader = RustStream::new(&mut reader);
-
         let stream = reader.stream_mut();
 
-        let out = unsafe { sb::C_SkSVGDOM_MakeFromStream(stream) };
+        let out = unsafe {
+            sb::C_SkSVGDOM_MakeFromStream(stream, Some(handle_load))
+        };
 
+        Self::from_ptr(out).ok_or(SvgLoadError)
+    }
+
+    pub fn from_bytes(stream: &[u8]) -> Result<Self, SvgLoadError> {
+        let mut ms = MemoryStream::from_bytes(stream);
+
+        let out = unsafe { sb::C_SkSVGDOM_MakeFromStream(ms.native_mut().as_stream_mut(), Some(handle_load)) };
         Self::from_ptr(out).ok_or(SvgLoadError)
     }
 
@@ -70,5 +136,48 @@ impl SvgDom {
     /// the animation should be rendered to.
     pub fn render(&self, canvas: &mut crate::Canvas) {
         unsafe { sb::SkSVGDOM::render(self.native() as &_, canvas.native_mut()) }
+    }
+}
+
+
+type StaticCharVec = &'static [char];
+
+const HTML_SPACE_CHARACTERS: StaticCharVec =
+    &['\u{0020}', '\u{0009}', '\u{000a}', '\u{000c}', '\u{000d}'];
+
+// https://github.com/servo/servo/blob/1610bd2bc83cea8ff0831cf999c4fba297788f64/components/script/dom/window.rs#L575
+fn decode_base64(value: &str) -> Vec<u8> {
+    fn is_html_space(c: char) -> bool {
+        HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
+    }
+    let without_spaces = value
+        .chars()
+        .filter(|&c| !is_html_space(c))
+        .collect::<String>();
+    let mut input = &*without_spaces;
+
+    if input.len() % 4 == 0 {
+        if input.ends_with("==") {
+            input = &input[..input.len() - 2]
+        } else if input.ends_with("=") {
+            input = &input[..input.len() - 1]
+        }
+    }
+
+    if input.len() % 4 == 1 {
+        return Vec::new();
+    }
+
+    if input
+        .chars()
+        .any(|c| c != '+' && c != '/' && !c.is_alphanumeric())
+    {
+        return Vec::new();
+    }
+    match base64::decode_config(&input, base64::STANDARD.decode_allow_trailing_bits(true)) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            return Vec::new();
+        }
     }
 }
