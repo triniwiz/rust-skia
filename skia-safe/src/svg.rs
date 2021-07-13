@@ -1,6 +1,5 @@
 use std::{error::Error, fmt, io};
 
-use ureq::Response;
 
 use skia_bindings as sb;
 use skia_bindings::{sk_sp, SkData};
@@ -62,7 +61,7 @@ impl From<SvgLoadError> for io::Error {
     }
 }
 
-extern "C" fn handle_load(resource_path: *const i8, resource_name: *const i8) -> *mut SkData {
+extern "C" fn handle_load(resource_path: *const ::std::os::raw::c_char, resource_name: *const ::std::os::raw::c_char) -> *mut SkData {
     unsafe {
         let mut is_base64 = false;
         if resource_path.is_null() {
@@ -83,16 +82,13 @@ extern "C" fn handle_load(resource_path: *const i8, resource_name: *const i8) ->
             let mut data = SvgDom::handle_load_base64(resource_name.to_string_lossy().as_ref());
             data.into_ptr()
         } else {
-            let path = format!("{}/{}", resource_path.to_string_lossy(), resource_name.to_string_lossy());
-            match ureq::agent().get(&path).call() {
-                Ok(res) => {
-                    let len = res.header("Content-Length")
-                        .and_then(|s| s.parse::<usize>().ok()).unwrap_or_default();
 
-                    let mut bytes: Vec<u8> = Vec::with_capacity(len);
-                   res.into_reader().take(len as u64)
-                        .read_to_end(&mut bytes);
-                    let data = crate::Data::new_copy(bytes.as_slice());
+            let path = format!("{}/{}", resource_path.to_string_lossy(), resource_name.to_string_lossy());
+
+
+            match reqwest::blocking::get(path).map(|v| v.text().unwrap_or_default()){
+                Ok(res) => {
+                    let data = crate::Data::new_copy(res.as_bytes());
                     data.into_ptr()
                 }
                 Err(_) => {

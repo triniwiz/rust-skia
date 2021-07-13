@@ -56,7 +56,6 @@ shaper = ["textlayout"]
 binary-cache = ["ureq", "flate2", "tar"]
 
 [dependencies]
-
 mozjpeg-sys = { version = "0", features=["with_simd"], optional=true }
 
 [build-dependencies]

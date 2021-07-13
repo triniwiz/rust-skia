@@ -42,7 +42,7 @@ svg = ["skia-bindings/svg"]
 shaper = ["textlayout", "skia-bindings/shaper"]
 
 [dependencies]
-ureq = "2.1.1"
+reqwest = { version = "0.11", features = ["blocking"] }
 base64 = "0.13.0"
 bitflags = "1.2"
 lazy_static = "1.4"
