@@ -18,7 +18,7 @@ categories = [
 ]
 license = "MIT"
 
-version = "0.101.0"
+version = "0.153.4"
 authors = ["Armin Sander <armin@replicator.org>"]
 edition.workspace = true
 rust-version.workspace = true
@@ -28,16 +28,16 @@ doctest = false
 
 [features]
 default = ["binary-cache", "embed-icudtl", "pdf", "jpeg"]
-all-linux = ["gl", "egl", "vulkan", "x11", "wayland", "textlayout", "svg", "skottie", "webp", "graphite"]
-all-windows = ["gl", "vulkan", "d3d", "textlayout", "svg", "skottie", "webp", "graphite"]
-all-macos = ["gl", "vulkan", "metal", "textlayout", "svg", "skottie", "webp", "graphite"]
-gl = ["gpu", "skia-bindings/gl"]
+all-linux = ["ganesh", "gl", "egl", "vulkan", "x11", "wayland", "textlayout", "svg", "skottie", "webp", "graphite"]
+all-windows = ["ganesh", "gl", "vulkan", "d3d", "textlayout", "svg", "skottie", "webp", "graphite"]
+all-macos = ["ganesh", "gl", "vulkan", "metal", "textlayout", "svg", "skottie", "webp", "graphite"]
+gl = ["ganesh", "skia-bindings/gl"]
 egl = ["gl", "skia-bindings/egl"]
 x11 = ["gl", "skia-bindings/x11"]
 wayland = ["egl", "skia-bindings/wayland"]
-vulkan = ["gpu", "skia-bindings/vulkan"]
-metal = ["gpu", "skia-bindings/metal"]
-d3d = ["gpu", "windows", "skia-bindings/d3d"]
+vulkan = ["skia-bindings/vulkan"]
+metal = ["skia-bindings/metal"]
+d3d = ["ganesh", "windows", "skia-bindings/d3d"]
 textlayout = ["skia-bindings/textlayout"]
 svg = ["skia-bindings/svg", "dep:base64", "dep:percent-encoding", "skia-svg-macros"]
 skottie = ["skia-bindings/skottie", "textlayout", "dep:base64", "dep:percent-encoding"]
@@ -56,13 +56,14 @@ no-compile = ["skia-bindings/no-compile"]
 # test only
 save-svg-images = []
 
-# implied only, do not use
+# Deprecated feature name; enabling it produces a migration error.
 gpu = []
+ganesh = ["skia-bindings/ganesh"]
 graphite = ["skia-bindings/graphite"]
 
 [dependencies]
 bitflags = "2.0"
-skia-bindings = { version = "=0.101.0", path = "../skia-bindings", default-features = false }
+skia-bindings = { version = "=0.153.3", path = "../skia-bindings", default-features = false }
 
 
 # D3D types & ComPtr
@@ -80,7 +81,7 @@ windows = { version = "0.62.0", features = [
 ureq = { version = "3.0.4", optional = true }
 base64 = { version = "0.23.0", optional = true }
 percent-encoding = { version = "2.3.1", optional = true }
-skia-svg-macros = { version = "0.1.0", path = "../skia-svg-macros", optional = true }
+skia-svg-macros = { version = "0.2.0", path = "../skia-svg-macros", optional = true }
 
 [dev-dependencies]
 

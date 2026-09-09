@@ -74,7 +74,8 @@ pub fn qa_jobs(workflow: &Workflow) -> Vec<Job> {
             }]
         }
         _ => {
-            const QA_ALL_FEATURES: &str = "gl,vulkan,textlayout,svg,skottie,ureq,webp";
+            const QA_ALL_FEATURES: &str =
+                "ganesh,gl,graphite,skottie,svg,textlayout,ureq,vulkan,webp";
             vec![Job {
                 name: JobName::Named("stable-all-features".into()),
                 toolchain: "stable",
@@ -93,19 +94,19 @@ pub fn binaries_jobs(workflow: &Workflow) -> Vec<Job> {
         // WASM: Only features that work (no vulkan, ureq, x11, wayland)
         vec![
             "".into(),
-            "gl".into(),
+            "ganesh,gl".into(),
             "textlayout".into(),
-            "gl,textlayout".into(),
+            "ganesh,gl,textlayout".into(),
         ]
     } else {
         [
             "",
             "gl",
-            "vulkan",
+            "ganesh,vulkan",
             "textlayout",
-            "gl,textlayout",
-            "vulkan,textlayout",
-            "gl,vulkan,textlayout",
+            "ganesh,gl,textlayout",
+            "ganesh,vulkan,textlayout",
+            "ganesh,gl,vulkan,textlayout",
         ]
         .iter()
         .map(|s| (*s).into())
@@ -119,20 +120,25 @@ pub fn binaries_jobs(workflow: &Workflow) -> Vec<Job> {
                 "d3d,textlayout".into(),
                 "d3d,gl,textlayout".into(),
             ]);
+            if workflow.host_os == HostOS::Windows {
+                features.push("graphite,vulkan".into());
+            }
         }
         HostOS::Linux => {
             features.extend_from_slice(&[
+                "graphite,vulkan".into(),
                 "gl,x11".into(),
                 "gl,textlayout,x11".into(),
                 // Full feature set: See skia-safe/Cargo.toml all-linux
-                "gl,egl,x11,wayland,vulkan,textlayout,svg,skottie,webp".into(),
+                "ganesh,gl,egl,x11,wayland,vulkan,textlayout,svg,skottie,webp".into(),
             ]);
         }
         HostOS::MacOS => {
             features.extend_from_slice(&[
-                "metal".into(),
-                "metal,textlayout".into(),
-                "metal,gl,textlayout".into(),
+                "ganesh,metal".into(),
+                "graphite,metal".into(),
+                "ganesh,metal,textlayout".into(),
+                "ganesh,metal,gl,textlayout".into(),
             ]);
         }
         HostOS::Wasm => {
@@ -144,6 +150,8 @@ pub fn binaries_jobs(workflow: &Workflow) -> Vec<Job> {
     features.extend(vizia_binaries_features(workflow));
     features.extend(skia_canvas_binaries_features(workflow));
     features.extend(grida_canvas_binaries_features(workflow));
+    features.extend(neovide_binaries_features(workflow));
+    features.extend(slint_binaries_features(workflow));
 
     features.sort();
     features.dedup();
@@ -166,7 +174,7 @@ fn freya_binaries_features(workflow: &Workflow) -> Vec<Features> {
             vec!["gl,textlayout,svg".into()]
         }
         HostOS::MacOS => {
-            vec!["gl,textlayout,svg,metal".into()]
+            vec!["ganesh,gl,textlayout,svg,metal".into()]
         }
         HostOS::WindowsArm | HostOS::Wasm => {
             vec![]
@@ -186,10 +194,10 @@ fn freya_binaries_features(workflow: &Workflow) -> Vec<Features> {
 fn vizia_binaries_features(workflow: &Workflow) -> Vec<Features> {
     match workflow.host_os {
         HostOS::MacOS => {
-            vec!["gl,vulkan,textlayout,svg".into()]
+            vec!["ganesh,gl,vulkan,textlayout,svg".into()]
         }
         HostOS::Windows => {
-            vec!["gl,vulkan,textlayout,svg,d3d".into()]
+            vec!["ganesh,gl,vulkan,textlayout,svg,d3d".into()]
         }
         HostOS::WindowsArm | HostOS::Wasm => {
             vec![]
@@ -209,17 +217,17 @@ fn skia_canvas_binaries_features(workflow: &Workflow) -> Vec<Features> {
         HostOS::MacOS => {
             vec![
                 "textlayout,webp,svg".into(),
-                "metal,textlayout,webp,svg".into(),
+                "ganesh,metal,textlayout,webp,svg".into(),
             ]
         }
         HostOS::Windows => {
-            vec!["vulkan,textlayout,webp,svg".into()]
+            vec!["ganesh,vulkan,textlayout,webp,svg".into()]
         }
         HostOS::WindowsArm => {
-            vec!["vulkan,textlayout,webp,svg".into()]
+            vec!["ganesh,vulkan,textlayout,webp,svg".into()]
         }
         HostOS::Linux => {
-            vec!["vulkan,textlayout,webp,svg".into()]
+            vec!["ganesh,vulkan,textlayout,webp,svg".into()]
         }
         HostOS::Wasm => {
             vec![]
@@ -234,6 +242,39 @@ fn grida_canvas_binaries_features(workflow: &Workflow) -> Vec<Features> {
             vec!["gl,textlayout,svg,webp".into()]
         }
         _ => Vec::new(),
+    }
+}
+
+// Binaries for Neovide: <https://github.com/neovide/neovide>
+// <https://github.com/neovide/neovide/pull/3544>
+fn neovide_binaries_features(workflow: &Workflow) -> Vec<Features> {
+    match workflow.host_os {
+        HostOS::Linux => vec!["embed-freetype,gl,textlayout".into()],
+        _ => Vec::new(),
+    }
+}
+
+/// Specific binary releases for the Slint UI toolkit <https://github.com/slint-ui/slint>
+///
+/// Slint shapes and lays out text itself, so it combines `gl` with the platform's
+/// accelerator but does not use `textlayout`. Every published combination of `gl`
+/// plus an accelerator currently enables `textlayout`, which embeds Skia's ICU data
+/// and adds about 10 MB to the resulting binary.
+fn slint_binaries_features(workflow: &Workflow) -> Vec<Features> {
+    match workflow.host_os {
+        HostOS::MacOS => {
+            vec!["ganesh,gl,metal".into()]
+        }
+        HostOS::Windows | HostOS::WindowsArm => {
+            vec!["d3d,gl".into()]
+        }
+        // Covers the Android targets built by the Linux workflow as well.
+        HostOS::Linux => {
+            vec!["ganesh,gl,vulkan".into()]
+        }
+        HostOS::Wasm => {
+            vec![]
+        }
     }
 }
 
@@ -275,10 +316,10 @@ fn linux_aarch64_targets() -> Vec<TargetConf> {
 }
 
 fn android_targets() -> Vec<TargetConf> {
+    // Android already embeds FreeType, so an explicit feature would duplicate existing binaries.
     [
-        TargetConf::new("aarch64-linux-android", "").disable("egl,x11,wayland"),
-        TargetConf::new("x86_64-linux-android", "").disable("egl,x11,wayland"),
-        TargetConf::new("i686-linux-android", "").disable("egl,x11,wayland"),
+        TargetConf::new("aarch64-linux-android", "").disable("egl,embed-freetype,x11,wayland"),
+        TargetConf::new("x86_64-linux-android", "").disable("egl,embed-freetype,x11,wayland"),
     ]
     .into()
 }
