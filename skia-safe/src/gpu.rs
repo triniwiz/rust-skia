@@ -85,7 +85,7 @@ pub mod direct_contexts {
 pub mod interfaces {
     #[cfg(feature = "egl")]
     pub use super::ganesh::gl::make_egl_interface::interfaces::*;
-    #[cfg(target_os = "ios")]
+    #[cfg(any(target_os = "ios", target_os = "tvos"))]
     pub use super::ganesh::gl::make_ios_interface::interfaces::*;
     #[cfg(target_os = "macos")]
     pub use super::ganesh::gl::make_mac_interface::interfaces::*;
