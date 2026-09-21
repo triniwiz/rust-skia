@@ -73,6 +73,16 @@ extern "C" void C_SkSVGDOM_setNodeById(SkSVGDOM* self, const char* id, SkSVGNode
     self->setNodeById(id, sk_ref_sp(node));
 }
 
+// The counterpart: the parser fills the id map, so this is the only way to reach a node in
+// a document that was loaded from a string.
+extern "C" SkSVGNode* C_SkSVGDOM_findNodeById(SkSVGDOM* self, const char* id) {
+    auto* found = self->findNodeById(id);
+    if (found == nullptr) {
+        return nullptr;
+    }
+    return found->get();
+}
+
 extern "C" void C_SkSVGTypes(
     SkSVGFeComponentTransfer*,
     SkSVGFeFlood*,
