@@ -35,7 +35,7 @@ impl Image {
             y: Length [get(value) => Length::from_native_ref(value), set(value) => value.into_native()],
             width: Length [get(value) => Length::from_native_ref(value), set(value) => value.into_native()],
             height: Length [get(value) => Length::from_native_ref(value), set(value) => value.into_native()],
-            href: Iri [get(value) => Iri::from_native_ref(value), set(value) => value.into_native()],
+            href: Iri [get(value) => Iri::from_native_ref(value), set(value) => value.native()],
             preserve_aspect_ratio: PreserveAspectRatio [get(value) => PreserveAspectRatio::from_native_ref(value), set(value) => value.into_native()]
         }
     }

@@ -29,7 +29,7 @@ impl DebugAttributes for Pattern {
 impl Pattern {
     skia_svg_macros::attrs! {
         SkSVGPattern => {
-            href: Iri [get(value) => Iri::from_native_ref(value), set(value) => value.into_native()],
+            href: Iri [get(value) => Iri::from_native_ref(value), set(value) => value.native()],
             x?: Length [get(value) => value.map(Length::from_native_ref), set(value) => value.into_native()],
             y?: Length [get(value) => value.map(Length::from_native_ref), set(value) => value.into_native()],
             width?: Length [get(value) => value.map(Length::from_native_ref), set(value) => value.into_native()],

@@ -159,7 +159,7 @@ impl TextLiteral {
         SkSVGTextLiteral => {
             text: str [
                 get(value) => interop::String::from_native_ref(value).as_str(),
-                set(&value) => interop::String::from_str(value).into_native()
+                set(&value) => interop::String::from_str(value).native()
             ]
         }
     }
@@ -188,7 +188,7 @@ impl DebugAttributes for TextPath {
 impl TextPath {
     skia_svg_macros::attrs! {
         SkSVGTextPath => {
-            href: Iri [get(value) => Iri::from_native_ref(value), set(value) => value.into_native()],
+            href: Iri [get(value) => Iri::from_native_ref(value), set(value) => value.native()],
             start_offset: Length [get(value) => Length::from_native_ref(value), set(value) => value.into_native()]
         }
     }

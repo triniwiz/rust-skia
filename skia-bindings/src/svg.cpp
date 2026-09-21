@@ -138,6 +138,18 @@ extern "C" void C_##type##_set##attr_name(type* self, const attr_type x) { \
     return self->set##attr_name(x);                                        \
 }                                                                          \
 
+// By-reference variants, for attributes whose type is not trivially copyable
+// (SkSVGIRI, SkSVGStringType, SkSVGFeInputType, SkPath -- all hold an SkString or
+// other heap storage). Passing those by value across `extern "C"` is an ABI
+// mismatch: the C++ ABI passes them indirectly, while Rust passes them directly.
+#define SVG_REF_ATTRIBUTE(type, attr_name, attr_type)                       \
+extern "C" const attr_type* C_##type##_get##attr_name(const type& self) {   \
+    return &self.get##attr_name();                                          \
+}                                                                           \
+extern "C" void C_##type##_set##attr_name(type* self, const attr_type& x) { \
+    return self->set##attr_name(x);                                         \
+}                                                                           \
+
 SVG_ATTRIBUTE(SkSVGCircle, Cx, SkSVGLength);
 SVG_ATTRIBUTE(SkSVGCircle, Cy, SkSVGLength);
 SVG_ATTRIBUTE(SkSVGCircle, R , SkSVGLength);
@@ -149,15 +161,15 @@ SVG_ATTRIBUTE(SkSVGEllipse, Cy, SkSVGLength);
 SVG_OPTIONAL_ATTRIBUTE(SkSVGEllipse, Rx, SkSVGLength);
 SVG_OPTIONAL_ATTRIBUTE(SkSVGEllipse, Ry, SkSVGLength);
 
-SVG_ATTRIBUTE(SkSVGFe, In, SkSVGFeInputType);
-SVG_ATTRIBUTE(SkSVGFe, Result, SkSVGStringType);
+SVG_REF_ATTRIBUTE(SkSVGFe, In, SkSVGFeInputType);
+SVG_REF_ATTRIBUTE(SkSVGFe, Result, SkSVGStringType);
 SVG_OPTIONAL_ATTRIBUTE(SkSVGFe, X, SkSVGLength);
 SVG_OPTIONAL_ATTRIBUTE(SkSVGFe, Y, SkSVGLength);
 SVG_OPTIONAL_ATTRIBUTE(SkSVGFe, Width, SkSVGLength);
 SVG_OPTIONAL_ATTRIBUTE(SkSVGFe, Height, SkSVGLength);
 
 SVG_ATTRIBUTE(SkSVGFeBlend, Mode, SkSVGFeBlend::Mode);
-SVG_ATTRIBUTE(SkSVGFeBlend, In2, SkSVGFeInputType);
+SVG_REF_ATTRIBUTE(SkSVGFeBlend, In2, SkSVGFeInputType);
 
 SVG_ATTRIBUTE(SkSVGFeColorMatrix, Type, SkSVGFeColorMatrixType);
 SVG_ATTRIBUTE_ARRAY(SkSVGFeColorMatrix, Values, const SkSVGNumberType);
@@ -170,21 +182,21 @@ SVG_ATTRIBUTE(SkSVGFeFunc, Slope      , SkSVGNumberType);
 SVG_ATTRIBUTE_ARRAY(SkSVGFeFunc, TableValues, const SkSVGNumberType);
 SVG_ATTRIBUTE(SkSVGFeFunc, Type       , SkSVGFeFuncType);
 
-SVG_ATTRIBUTE(SkSVGFeComposite, In2, SkSVGFeInputType);
+SVG_REF_ATTRIBUTE(SkSVGFeComposite, In2, SkSVGFeInputType);
 SVG_ATTRIBUTE(SkSVGFeComposite, K1, SkSVGNumberType);
 SVG_ATTRIBUTE(SkSVGFeComposite, K2, SkSVGNumberType);
 SVG_ATTRIBUTE(SkSVGFeComposite, K3, SkSVGNumberType);
 SVG_ATTRIBUTE(SkSVGFeComposite, K4, SkSVGNumberType);
 SVG_ATTRIBUTE(SkSVGFeComposite, Operator, SkSVGFeCompositeOperator);
 
-SVG_ATTRIBUTE(SkSVGFeDisplacementMap, In2             , SkSVGFeInputType);
+SVG_REF_ATTRIBUTE(SkSVGFeDisplacementMap, In2, SkSVGFeInputType);
 SVG_ATTRIBUTE(SkSVGFeDisplacementMap, XChannelSelector, SkSVGFeDisplacementMap::ChannelSelector);
 SVG_ATTRIBUTE(SkSVGFeDisplacementMap, YChannelSelector, SkSVGFeDisplacementMap::ChannelSelector);
 SVG_ATTRIBUTE(SkSVGFeDisplacementMap, Scale           , SkSVGNumberType);
 
 SVG_ATTRIBUTE(SkSVGFeGaussianBlur, StdDeviation, SkSVGFeGaussianBlur::StdDeviation);
 
-SVG_ATTRIBUTE(SkSVGFeImage, Href               , SkSVGIRI                );
+SVG_REF_ATTRIBUTE(SkSVGFeImage, Href, SkSVGIRI);
 SVG_ATTRIBUTE(SkSVGFeImage, PreserveAspectRatio, SkSVGPreserveAspectRatio);
 
 SVG_ATTRIBUTE(SkSVGFeLighting, SurfaceScale, SkSVGNumberType);
@@ -211,7 +223,7 @@ SVG_ATTRIBUTE(SkSVGFeSpotLight, PointsAtZ       , SkSVGNumberType);
 SVG_ATTRIBUTE(SkSVGFeSpotLight, SpecularExponent, SkSVGNumberType);
 SVG_OPTIONAL_ATTRIBUTE(SkSVGFeSpotLight, LimitingConeAngle, SkSVGNumberType);
 
-SVG_ATTRIBUTE(SkSVGFeMergeNode, In, SkSVGFeInputType);
+SVG_REF_ATTRIBUTE(SkSVGFeMergeNode, In, SkSVGFeInputType);
 
 SVG_ATTRIBUTE(SkSVGFeMorphology, Operator, SkSVGFeMorphology::Operator);
 SVG_ATTRIBUTE(SkSVGFeMorphology, Radius  , SkSVGFeMorphology::Radius  );
@@ -231,7 +243,7 @@ SVG_ATTRIBUTE(SkSVGFilter, Height, SkSVGLength);
 SVG_ATTRIBUTE(SkSVGFilter, FilterUnits, SkSVGObjectBoundingBoxUnits);
 SVG_ATTRIBUTE(SkSVGFilter, PrimitiveUnits, SkSVGObjectBoundingBoxUnits);
 
-SVG_ATTRIBUTE(SkSVGGradient, Href, SkSVGIRI);
+SVG_REF_ATTRIBUTE(SkSVGGradient, Href, SkSVGIRI);
 SVG_ATTRIBUTE(SkSVGGradient, GradientTransform, SkSVGTransformType);
 SVG_ATTRIBUTE(SkSVGGradient, SpreadMethod, SkSVGSpreadMethod);
 SVG_ATTRIBUTE(SkSVGGradient, GradientUnits, SkSVGObjectBoundingBoxUnits);
@@ -240,7 +252,7 @@ SVG_ATTRIBUTE(SkSVGImage, X                  , SkSVGLength             );
 SVG_ATTRIBUTE(SkSVGImage, Y                  , SkSVGLength             );
 SVG_ATTRIBUTE(SkSVGImage, Width              , SkSVGLength             );
 SVG_ATTRIBUTE(SkSVGImage, Height             , SkSVGLength             );
-SVG_ATTRIBUTE(SkSVGImage, Href               , SkSVGIRI                );
+SVG_REF_ATTRIBUTE(SkSVGImage, Href, SkSVGIRI);
 SVG_ATTRIBUTE(SkSVGImage, PreserveAspectRatio, SkSVGPreserveAspectRatio);
 
 SVG_ATTRIBUTE(SkSVGLine, X1, SkSVGLength);
@@ -260,9 +272,9 @@ SVG_ATTRIBUTE(SkSVGMask, Height, SkSVGLength);
 SVG_ATTRIBUTE(SkSVGMask, MaskUnits, SkSVGObjectBoundingBoxUnits);
 SVG_ATTRIBUTE(SkSVGMask, MaskContentUnits, SkSVGObjectBoundingBoxUnits);
 
-SVG_ATTRIBUTE(SkSVGPath, Path, SkPath);
+SVG_REF_ATTRIBUTE(SkSVGPath, Path, SkPath);
 
-SVG_ATTRIBUTE(SkSVGPattern, Href, SkSVGIRI);
+SVG_REF_ATTRIBUTE(SkSVGPattern, Href, SkSVGIRI);
 SVG_OPTIONAL_ATTRIBUTE(SkSVGPattern, X               , SkSVGLength);
 SVG_OPTIONAL_ATTRIBUTE(SkSVGPattern, Y               , SkSVGLength);
 SVG_OPTIONAL_ATTRIBUTE(SkSVGPattern, Width           , SkSVGLength);
@@ -320,14 +332,14 @@ extern "C" void C_SkSVGTextContainer_setRotate(SkSVGTextContainer* self, const S
     self->setRotate(std::vector<SkSVGNumberType>(values, values + count));
 }
 
-SVG_ATTRIBUTE(SkSVGTextLiteral, Text, SkSVGStringType);
+SVG_REF_ATTRIBUTE(SkSVGTextLiteral, Text, SkSVGStringType);
 
-SVG_ATTRIBUTE(SkSVGTextPath, Href       , SkSVGIRI   );
+SVG_REF_ATTRIBUTE(SkSVGTextPath, Href, SkSVGIRI);
 SVG_ATTRIBUTE(SkSVGTextPath, StartOffset, SkSVGLength);
 
 SVG_ATTRIBUTE(SkSVGUse, X   , SkSVGLength);
 SVG_ATTRIBUTE(SkSVGUse, Y   , SkSVGLength);
-SVG_ATTRIBUTE(SkSVGUse, Href, SkSVGIRI   );
+SVG_REF_ATTRIBUTE(SkSVGUse, Href, SkSVGIRI);
 
 extern "C" void C_SkSVGIRI_Construct(SkSVGIRI* uninitialized) {
     new(uninitialized)SkSVGIRI();

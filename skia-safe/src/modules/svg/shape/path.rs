@@ -24,7 +24,7 @@ impl DebugAttributes for Path {
 impl Path {
     skia_svg_macros::attrs! {
         SkSVGPath => {
-            path: crate::Path [get(value) => crate::Path::from_native_ref(value), set(value) => value.into_native()]
+            path: crate::Path [get(value) => crate::Path::from_native_ref(value), set(value) => value.native()]
         }
     }
 }

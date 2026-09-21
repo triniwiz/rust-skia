@@ -57,8 +57,8 @@ impl Fe {
 
     skia_svg_macros::attrs! {
         SkSVGFe => {
-            "in" as input: Input [get(value) => Input::from_native_ref(value), set(value) => value.into_native()],
-            result: crate::interop::String [get(value) => crate::interop::String::from_native_ref(value), set(value) => value.into_native()],
+            "in" as input: Input [get(value) => Input::from_native_ref(value), set(value) => value.native()],
+            result: crate::interop::String [get(value) => crate::interop::String::from_native_ref(value), set(value) => value.native()],
             x?: Length [get(value) => value.map(Length::from_native_ref), set(value) => value.into_native()],
             y?: Length [get(value) => value.map(Length::from_native_ref), set(value) => value.into_native()],
             width?: Length [get(value) => value.map(Length::from_native_ref), set(value) => value.into_native()],

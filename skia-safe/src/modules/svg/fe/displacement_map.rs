@@ -32,7 +32,7 @@ impl DebugAttributes for DisplacementMap {
 impl DisplacementMap {
     skia_svg_macros::attrs! {
         SkSVGFeDisplacementMap => {
-            "in2" as input2: Input [get(value) => Input::from_native_ref(value), set(value) => value.into_native()],
+            "in2" as input2: Input [get(value) => Input::from_native_ref(value), set(value) => value.native()],
             x_channel_selector: ChannelSelector [get(value) => value, set(value) => value],
             y_channel_selector: ChannelSelector [get(value) => value, set(value) => value],
             scale: scalar [get(value) => value, set(value) => value]

@@ -21,7 +21,7 @@ impl DebugAttributes for MergeNode {
 impl MergeNode {
     skia_svg_macros::attrs! {
         SkSVGFeMergeNode => {
-            "in" as input: Input [get(value) => Input::from_native_ref(value), set(value) => value.into_native()]
+            "in" as input: Input [get(value) => Input::from_native_ref(value), set(value) => value.native()]
         }
     }
 }
