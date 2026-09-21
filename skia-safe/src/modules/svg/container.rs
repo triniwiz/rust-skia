@@ -22,6 +22,12 @@ impl Container {
         unsafe { sb::C_SkSVGContainer_appendChild(self.native_mut(), node.into().into_ptr()) }
     }
 
+    /// Removes the child at `index`, preserving the order of the remaining children.
+    /// No-op if `index` is out of range.
+    pub fn remove_child(&mut self, index: usize) {
+        unsafe { sb::C_SkSVGContainer_removeChild(self.native_mut(), index as i32) }
+    }
+
     pub fn children(&self) -> &[Node] {
         unsafe {
             let sp_slice = safer::from_raw_parts(

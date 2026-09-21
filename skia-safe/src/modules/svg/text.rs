@@ -69,6 +69,36 @@ impl TextContainer {
         }
     }
 
+    pub fn set_x(&mut self, values: &[Length]) {
+        unsafe {
+            sb::C_SkSVGTextContainer_setX(self.native_mut(), values.as_ptr() as *const _, values.len())
+        }
+    }
+
+    pub fn set_y(&mut self, values: &[Length]) {
+        unsafe {
+            sb::C_SkSVGTextContainer_setY(self.native_mut(), values.as_ptr() as *const _, values.len())
+        }
+    }
+
+    pub fn set_dx(&mut self, values: &[Length]) {
+        unsafe {
+            sb::C_SkSVGTextContainer_setDx(self.native_mut(), values.as_ptr() as *const _, values.len())
+        }
+    }
+
+    pub fn set_dy(&mut self, values: &[Length]) {
+        unsafe {
+            sb::C_SkSVGTextContainer_setDy(self.native_mut(), values.as_ptr() as *const _, values.len())
+        }
+    }
+
+    pub fn set_rotate(&mut self, values: &[scalar]) {
+        unsafe {
+            sb::C_SkSVGTextContainer_setRotate(self.native_mut(), values.as_ptr(), values.len())
+        }
+    }
+
     skia_svg_macros::attrs! {
         SkSVGTextContainer => {
             xml_space: XmlSpace [get(value) => value, set(value) => value]

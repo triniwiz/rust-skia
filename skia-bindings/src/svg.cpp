@@ -271,6 +271,10 @@ SVG_OPTIONAL_ATTRIBUTE(SkSVGPattern, PatternTransform, SkSVGTransformType);
 
 SVG_ATTRIBUTE_ARRAY(SkSVGPoly, Points, const SkPoint);
 
+extern "C" void C_SkSVGPoly_setPoints(SkSVGPoly* self, const SkPoint* points, size_t count) {
+    self->setPoints(SkSVGPointsType(points, points + count));
+}
+
 SVG_ATTRIBUTE(SkSVGRadialGradient, Cx, SkSVGLength);
 SVG_ATTRIBUTE(SkSVGRadialGradient, Cy, SkSVGLength);
 SVG_ATTRIBUTE(SkSVGRadialGradient, R,  SkSVGLength);
@@ -299,6 +303,22 @@ SVG_ATTRIBUTE_ARRAY(SkSVGTextContainer, Dx, const SkSVGLength);
 SVG_ATTRIBUTE_ARRAY(SkSVGTextContainer, Dy, const SkSVGLength);
 SVG_ATTRIBUTE_ARRAY(SkSVGTextContainer, Rotate, const SkSVGNumberType);
 SVG_ATTRIBUTE(SkSVGTextContainer, XmlSpace, SkSVGXmlSpace);
+
+extern "C" void C_SkSVGTextContainer_setX(SkSVGTextContainer* self, const SkSVGLength* values, size_t count) {
+    self->setX(std::vector<SkSVGLength>(values, values + count));
+}
+extern "C" void C_SkSVGTextContainer_setY(SkSVGTextContainer* self, const SkSVGLength* values, size_t count) {
+    self->setY(std::vector<SkSVGLength>(values, values + count));
+}
+extern "C" void C_SkSVGTextContainer_setDx(SkSVGTextContainer* self, const SkSVGLength* values, size_t count) {
+    self->setDx(std::vector<SkSVGLength>(values, values + count));
+}
+extern "C" void C_SkSVGTextContainer_setDy(SkSVGTextContainer* self, const SkSVGLength* values, size_t count) {
+    self->setDy(std::vector<SkSVGLength>(values, values + count));
+}
+extern "C" void C_SkSVGTextContainer_setRotate(SkSVGTextContainer* self, const SkSVGNumberType* values, size_t count) {
+    self->setRotate(std::vector<SkSVGNumberType>(values, values + count));
+}
 
 SVG_ATTRIBUTE(SkSVGTextLiteral, Text, SkSVGStringType);
 
@@ -355,6 +375,10 @@ class SkSVGContainerAccessor : public SkSVGContainer {
 
 extern "C" void C_SkSVGContainer_appendChild(SkSVGContainer* self, SkSVGNode* node) {
     self->appendChild(sk_sp<SkSVGNode>(node));
+}
+
+extern "C" void C_SkSVGContainer_removeChild(SkSVGContainer* self, int index) {
+    self->removeChild(index);
 }
 
 extern "C" int C_SkSVGContainer_childrenCount(const SkSVGContainer& self) {

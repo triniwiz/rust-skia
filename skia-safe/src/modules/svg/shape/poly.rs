@@ -36,4 +36,14 @@ impl Poly {
             )
         }
     }
+
+    pub fn set_points(&mut self, points: &[Point]) {
+        unsafe {
+            sb::C_SkSVGPoly_setPoints(
+                self.native_mut(),
+                points.as_ptr() as *const _,
+                points.len(),
+            )
+        }
+    }
 }
