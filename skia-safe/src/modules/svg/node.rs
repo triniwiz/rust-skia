@@ -68,8 +68,20 @@ impl Node {
 
     // TODO: wrap appendChild()
     // TODO: wrap render(), asPaint(), asPath(), objectBoundingBox()
-    // TODO: wrap setAttribute().
-    // TODO: wrap parseAndSetAttribute()
+
+    /// Sets an attribute from its SVG string form, the way the parser does.
+    ///
+    /// Prefer this over the typed setters when applying author-supplied values: it runs the
+    /// side effects they skip -- `<polygon>`/`<polyline>` only rebuild the path `onDraw`
+    /// reads from inside this path -- and it also accepts `transform`, `viewBox`, `style`
+    /// and the rest of the attribute table. Returns whether the attribute was recognized.
+    pub fn set_string_attribute(&mut self, name: impl AsRef<str>, value: impl AsRef<str>) -> bool {
+        let name = std::ffi::CString::new(name.as_ref()).unwrap_or_default();
+        let value = std::ffi::CString::new(value.as_ref()).unwrap_or_default();
+        unsafe {
+            sb::C_SkSVGNode_setStringAttribute(self.native_mut(), name.as_ptr(), value.as_ptr())
+        }
+    }
 
     pub fn typed(self) -> TypedNode {
         TypedNode::from_ptr(self.into_ptr())

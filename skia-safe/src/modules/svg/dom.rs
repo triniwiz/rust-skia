@@ -12,7 +12,7 @@ use crate::{
 };
 use skia_bindings::{self as sb, SkRefCntBase};
 
-use super::Svg;
+use super::{Node, Svg};
 
 pub type Dom = RCHandle<sb::SkSVGDOM>;
 require_base_type!(sb::SkSVGDOM, sb::SkRefCnt);
@@ -113,6 +113,17 @@ impl Dom {
     pub fn set_container_size(&mut self, size: impl Into<Size>) {
         let size = size.into();
         unsafe { sb::C_SkSVGDOM_setContainerSize(self.native_mut(), size.native()) }
+    }
+
+    /// Associates `id` with `node`, so `<use xlink:href="#id">`, `clip-path`, `mask` and
+    /// `filter` references resolve to it.
+    ///
+    /// Parsing populates this mapping on its own; this is for nodes built after the fact,
+    /// which are otherwise unreferenceable. `None` removes the entry.
+    pub fn set_node_by_id(&mut self, id: impl AsRef<str>, node: Option<&Node>) {
+        let id = std::ffi::CString::new(id.as_ref()).unwrap_or_default();
+        let node = node.map_or(std::ptr::null_mut(), |n| n.native() as *const _ as *mut _);
+        unsafe { sb::C_SkSVGDOM_setNodeById(self.native_mut(), id.as_ptr(), node) }
     }
 }
 

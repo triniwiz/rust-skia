@@ -67,6 +67,12 @@ extern "C" SkSVGSVG* C_SkSVGDOM_getRoot(const SkSVGDOM* self){
     return self->getRoot();
 }
 
+// Registers a programmatically created node so `<use xlink:href="#id">`, clip-path, mask
+// and filter references can resolve it -- the parser only populates this while parsing.
+extern "C" void C_SkSVGDOM_setNodeById(SkSVGDOM* self, const char* id, SkSVGNode* node) {
+    self->setNodeById(id, sk_ref_sp(node));
+}
+
 extern "C" void C_SkSVGTypes(
     SkSVGFeComponentTransfer*,
     SkSVGFeFlood*,
@@ -83,6 +89,14 @@ extern "C" void C_SkSVGTypes(
 
 extern "C" SkSize C_SkSVGSVG_intrinsicSize(const SkSVGSVG* self) {
     return self->intrinsicSize(SkSVGLengthContext(SkSize::Make(0, 0)));
+}
+
+// The same entry point SkSVGDOM's parser uses for every attribute: tries
+// parseAndSetAttribute first, then the attribute table (transform, viewBox, style,
+// x/y/width/height, xlink:href, ...). Unlike the typed setters it also runs the
+// side effects -- e.g. SkSVGPoly rebuilds the cached path that onDraw() reads.
+extern "C" bool C_SkSVGNode_setStringAttribute(SkSVGNode* self, const char* name, const char* value) {
+    return self->setAttribute(name, value);
 }
 
 extern "C" bool C_SkSVGSVG_parseAndSetAttribute(SkSVGSVG* self, const char* name, const char* value){
