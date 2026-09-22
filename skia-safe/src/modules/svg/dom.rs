@@ -115,6 +115,16 @@ impl Dom {
         unsafe { sb::C_SkSVGDOM_setContainerSize(self.native_mut(), size.native()) }
     }
 
+    /// Renders just the node with this id, as if it were the root's only child.
+    ///
+    /// Lets a caller keep a cached raster of the static content and redraw only what moves.
+    pub fn render_node(&self, canvas: &Canvas, id: impl AsRef<str>) {
+        let Ok(id) = std::ffi::CString::new(id.as_ref()) else {
+            return;
+        };
+        unsafe { sb::C_SkSVGDOM_renderNode(self.native(), canvas.native_mut(), id.as_ptr()) }
+    }
+
     /// The node registered under `id`, whether by the parser or by [`Self::set_node_by_id`].
     pub fn find_node_by_id(&mut self, id: impl AsRef<str>) -> Option<Node> {
         let id = std::ffi::CString::new(id.as_ref()).ok()?;

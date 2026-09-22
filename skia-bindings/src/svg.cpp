@@ -73,6 +73,15 @@ extern "C" void C_SkSVGDOM_setNodeById(SkSVGDOM* self, const char* id, SkSVGNode
     self->setNodeById(id, sk_ref_sp(node));
 }
 
+// Renders one node as if it were the only child of the root, so a caller can composite an
+// animating subtree over a cached raster of the static content instead of redrawing
+// everything. SkSVGPresentationContext holds the inherited presentation state; a default one
+// is what the root would start from.
+extern "C" void C_SkSVGDOM_renderNode(const SkSVGDOM* self, SkCanvas* canvas, const char* id) {
+    SkSVGPresentationContext pctx;
+    self->renderNode(canvas, pctx, id);
+}
+
 // The counterpart: the parser fills the id map, so this is the only way to reach a node in
 // a document that was loaded from a string.
 extern "C" SkSVGNode* C_SkSVGDOM_findNodeById(SkSVGDOM* self, const char* id) {
