@@ -306,10 +306,45 @@ pub fn generate_bindings(
         builder = builder.clang_args(bindgen_args);
 
         let bindings = builder.generate().expect("Unable to generate bindings");
-        bindings
-            .write_to_file(output_directory.join("bindings.rs"))
-            .expect("Couldn't write bindings!");
+        let source = align_opaque_arrays(bindings.to_string());
+        std::fs::write(output_directory.join("bindings.rs"), source).expect("Couldn't write bindings!");
     }
+}
+
+/// Restore the alignment of opaque blobs that bindgen renders as `__BindgenOpaqueArray<u64, N>`.
+///
+/// Bindgen picks the element type so that `size_of::<T>()` equals the alignment clang reported for
+/// the opaque C++ type. That assumes Rust and C agree on the alignment of `T`, which is false for
+/// 64-bit integers on 32-bit x86: the i386 ABI aligns `long long`/`double`/`uint64_t` to 4, so
+/// Rust's `u64` is 4-aligned there, while the C++ types in question are 8-aligned because Skia
+/// declares their storage `alignas(8)` (`SkAnySubclass`, `SkCodec::GetPixelsCallback`, ...).
+///
+/// The emitted alias then under-aligns, and every layout assertion for a struct embedding it
+/// (`GrBackendFormat`, `GrBackendTexture`, `GrBackendRenderTarget`, `GrBackendSemaphore`,
+/// `skgpu::MutableTextureState`) fails to compile on `i686-linux-android`. Swap in a wrapper that
+/// states the alignment instead of inferring it. A `u64` element always means clang computed an
+/// alignment of 8, so this is a no-op on targets where `u64` is already 8-aligned.
+fn align_opaque_arrays(source: String) -> String {
+    const WRAPPER: &str = r#"
+#[doc = " Like `__BindgenOpaqueArray<u64, N>`, but with the 8-byte alignment stated rather than"]
+#[doc = " inferred from `u64`, whose alignment is only 4 on 32-bit x86."]
+#[derive(PartialEq, Copy, Clone, Debug, Hash)]
+#[repr(C, align(8))]
+pub struct __BindgenOpaqueArrayAligned8<const N: usize>(pub [u64; N]);
+impl<const N: usize> Default for __BindgenOpaqueArrayAligned8<N> {
+    fn default() -> Self {
+        Self([0u64; N])
+    }
+}
+"#;
+
+    let replaced = source
+        .replace("__BindgenOpaqueArray<u64, ", "__BindgenOpaqueArrayAligned8<")
+        .replace("__BindgenOpaqueArray<u64,", "__BindgenOpaqueArrayAligned8<");
+    if replaced == source {
+        return source;
+    }
+    replaced + WRAPPER
 }
 
 const ALLOWLISTED_FUNCTIONS: &[&str] = &[
