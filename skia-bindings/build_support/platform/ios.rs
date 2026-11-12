@@ -21,11 +21,20 @@ impl PlatformDetails for Ios {
     fn gn_args(&self, config: &BuildConfiguration, builder: &mut GnArgsBuilder) {
         let (arch, abi) = config.target.arch_abi();
 
-        // Set minimum target for consistency (this is actually not required, because it is set it
-        // in the extra_cflags, too).
-        builder.arg("ios_min_target", quote(&format!("{MIN_IOS_VERSION}.0")));
-
+        let platform = IosPlatform::new(arch, abi);
         builder.target_os_and_default_cpu("ios");
+
+        if platform == IosPlatform::Catalyst {
+            // macOS SDK; the version comes from the macabi target.
+            let sdk = platform.sdk_path();
+            builder.arg("ios_min_target", quote(""));
+            builder.arg("xcode_sysroot", quote(sdk.to_str().unwrap()));
+            builder.cflags(catalyst_search_paths(&sdk));
+        } else {
+            // Set minimum target for consistency (this is actually not required, because it is set it
+            // in the extra_cflags, too).
+            builder.arg("ios_min_target", quote(&format!("{MIN_IOS_VERSION}.0")));
+        }
 
         // m100: Needed for aarch64 simulators, requires cherry Skia pick
         // 0361abf39d1504966799b1cdb5450e07f88b2bc2 (until milestone 102).
@@ -81,8 +90,16 @@ fn is_simulator(arch: &str, abi: Option<&str>) -> bool {
 }
 
 fn specific_target(arch: &str, abi: Option<&str>) -> Option<String> {
-    (IosPlatform::new(arch, abi) == IosPlatform::M1Simulator)
-        .then(|| format!("arm64-apple-ios{MIN_IOS_VERSION_M1}.0-simulator"))
+    match IosPlatform::new(arch, abi) {
+        IosPlatform::M1Simulator => {
+            Some(format!("arm64-apple-ios{MIN_IOS_VERSION_M1}.0-simulator"))
+        }
+        IosPlatform::Catalyst => Some(format!(
+            "{}-apple-ios{MIN_IOS_VERSION_CATALYST}.0-macabi",
+            clang::target_arch(arch)
+        )),
+        _ => None,
+    }
 }
 
 // TODO: add support for 32 bit devices and simulators.
@@ -108,9 +125,27 @@ fn additional_clang_args(arch: &str, platform: IosPlatform, sdk: &Path) -> Vec<S
 
     args.push("-isysroot".into());
     args.push(sdk.to_str().unwrap().into());
+    if platform == IosPlatform::Catalyst {
+        args.extend(catalyst_search_paths(sdk));
+    }
     args.push("-fembed-bitcode".into());
 
     args
+}
+
+/// Catalyst's UIKit frameworks and headers; Xcode passes these, plain clang does not.
+fn catalyst_search_paths(sdk: &Path) -> Vec<String> {
+    let ios_support = sdk.join("System/iOSSupport");
+    vec![
+        "-iframework".into(),
+        ios_support
+            .join("System/Library/Frameworks")
+            .to_str()
+            .unwrap()
+            .into(),
+        "-isystem".into(),
+        ios_support.join("usr/include").to_str().unwrap().into(),
+    ]
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -146,6 +181,9 @@ impl IosPlatform {
         let min_version = format!("-m{platform_variant}-version-min={ios_version}.0");
         let min_required = format!("-D__IPHONE_OS_VERSION_MIN_REQUIRED={ios_version}0000");
 
+        if self == IosPlatform::Catalyst {
+            return vec![min_required];
+        }
         vec![min_version, min_required]
     }
 
